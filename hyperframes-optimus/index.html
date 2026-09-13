@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Optimus Prime · Mechanical Archive Film</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --bg: #080b0e;
+        --surface: #121d22;
+        --text: #e9eded;
+        --muted: #87979d;
+        --cyan: #9dd9e6;
+        --orange: #e2633e;
+        --blue: #237bff;
+        --red: #ff3b42;
+        --yellow: #ffc247;
+      }
+
+      * { box-sizing: border-box; }
+      @font-face { font-family: Barlow; src: local("Arial"); }
+      @font-face { font-family: "Barlow Condensed"; src: local("Arial Narrow"); }
+      @font-face { font-family: "Noto Sans SC"; src: local("PingFang SC"); }
+      @font-face { font-family: "PingFang SC"; src: local("PingFang SC"); }
+      @font-face { font-family: Impact; src: local("Impact"); }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Barlow, "Noto Sans SC", "PingFang SC", sans-serif;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      #scene-1 { z-index: 2; background-color: rgba(8, 11, 14, .08); }
+      #scene-2 { z-index: 3; background-color: #080b0e; opacity: 0; }
+      #scene-3 { z-index: 4; background-color: rgba(11, 17, 21, .1); opacity: 0; }
+      #scene-4 { z-index: 5; background-color: #080b0e; opacity: 0; }
+      #three-canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
+
+      .scene::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 70% 42%, rgba(35, 123, 255, .16), rgba(35, 123, 255, 0) 32%),
+          radial-gradient(circle at 30% 78%, rgba(226, 99, 62, .11), rgba(226, 99, 62, 0) 28%);
+      }
+
+      .grid {
+        position: absolute;
+        inset: 0;
+        opacity: .3;
+        background-image:
+          linear-gradient(rgba(157, 217, 230, .06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(157, 217, 230, .06) 1px, transparent 1px);
+        background-size: 96px 96px;
+        mask-image: linear-gradient(to bottom, rgba(0,0,0,.05), #000 30%, #000 74%, rgba(0,0,0,.1));
+      }
+
+      .noise {
+        position: absolute;
+        inset: 0;
+        opacity: .05;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+      }
+
+      .scanline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: var(--cyan);
+        box-shadow: 0 0 32px rgba(157, 217, 230, .7);
+        opacity: .55;
+      }
+
+      .topbar {
+        position: absolute;
+        top: 48px;
+        left: 78px;
+        right: 78px;
+        z-index: 5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(157, 217, 230, .22);
+        padding-bottom: 18px;
+        color: var(--muted);
+        font-size: 14px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+      }
+
+      .topbar strong { color: var(--text); font-weight: 700; }
+      .status { display: flex; align-items: center; gap: 12px; color: var(--cyan); font-size: 12px; }
+      .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 16px rgba(157, 217, 230, .95); }
+
+      .scene-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        padding: 170px 122px 86px;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 0;
+        color: var(--cyan);
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before { content: ""; width: 42px; height: 2px; background: var(--orange); }
+
+      h1, h2, p { margin: 0; }
+      .hero-title {
+        max-width: 780px;
+        margin-top: 34px;
+        font-family: "Barlow Condensed", Impact, sans-serif;
+        font-size: 174px;
+        line-height: .78;
+        font-weight: 600;
+        letter-spacing: -2px;
+        text-transform: uppercase;
+      }
+
+      .hero-title span { display: block; color: #080b0e; -webkit-text-fill-color: #080b0e; -webkit-text-stroke: 2px rgba(233, 237, 237, .7); }
+      .hero-subtitle { margin-top: 32px; color: var(--orange); font-size: 26px; letter-spacing: 15px; }
+      .hero-note { max-width: 470px; margin-top: 28px; color: var(--muted); font-size: 18px; line-height: 1.8; letter-spacing: 2px; }
+
+      .corner-meta { position: absolute; bottom: 82px; left: 122px; color: var(--muted); font-size: 12px; line-height: 2; letter-spacing: 3px; }
+      .corner-meta b { color: var(--orange); font-weight: 500; }
+
+      .split-layout {
+        display: grid;
+        grid-template-columns: 1fr 1.05fr;
+        gap: 90px;
+        align-items: center;
+        height: 100%;
+        padding: 154px 122px 80px;
+      }
+
+      .section-title { max-width: 620px; margin-top: 28px; font-family: "Barlow Condensed", sans-serif; font-size: 108px; line-height: .86; text-transform: uppercase; }
+      .section-copy { max-width: 510px; margin-top: 34px; color: var(--muted); font-size: 20px; line-height: 1.7; letter-spacing: 1px; }
+      .data-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 800px; margin-top: 42px; }
+      .data-box { padding: 18px 20px; border: 1px solid rgba(157, 217, 230, .18); background: rgba(18, 29, 34, .65); }
+      .data-box small { display: block; color: var(--muted); font-size: 11px; letter-spacing: 2px; }
+      .data-box strong { display: block; margin-top: 10px; color: var(--text); font-family: "Barlow Condensed", "Noto Sans SC", sans-serif; font-size: 20px; font-weight: 500; letter-spacing: 1px; white-space: nowrap; }
+
+      .showcase-frame { position: relative; height: 730px; overflow: hidden; border: 1px solid rgba(157, 217, 230, .25); background: #0b1115; box-shadow: 0 30px 90px rgba(0,0,0,.35); }
+      .showcase-frame img { width: 100%; height: 100%; object-fit: cover; object-position: 70% 54%; filter: saturate(.9) contrast(1.08) brightness(.8); }
+      .showcase-frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(35,123,255,.18), rgba(8,11,14,.08) 48%, rgba(226,99,62,.14)); mix-blend-mode: screen; }
+      .frame-tag { position: absolute; top: 22px; left: 24px; z-index: 2; color: var(--cyan); font-size: 12px; letter-spacing: 3px; }
+      .frame-corner { position: absolute; right: 24px; bottom: 20px; z-index: 2; color: var(--orange); font-size: 12px; letter-spacing: 2px; }
+
+      .profile-layout { display: flex; align-items: center; justify-content: center; height: 100%; padding: 138px 120px 62px; }
+      .profile-card { position: relative; width: 1280px; min-height: 820px; padding: 48px 64px 30px; border: 1px solid rgba(157, 217, 230, .28); background: rgba(14, 26, 31, .94); box-shadow: 0 28px 100px rgba(0, 0, 0, .5); }
+      .profile-card::before { content: ""; position: absolute; inset: 12px; border: 1px solid rgba(157, 217, 230, .07); pointer-events: none; }
+      .profile-card .eyebrow { position: relative; z-index: 1; color: var(--text); font-size: 12px; letter-spacing: 4px; }
+      .profile-title { position: relative; z-index: 1; margin-top: 24px; color: var(--text); font-family: "Noto Sans SC", "PingFang SC", sans-serif; font-size: 66px; line-height: 1.08; letter-spacing: 5px; }
+      .profile-lead { position: relative; z-index: 1; max-width: 1110px; margin-top: 24px; color: #d9e4e6; font-size: 22px; line-height: 1.7; letter-spacing: 1px; }
+      .profile-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 26px; border-top: 1px solid rgba(157, 217, 230, .2); border-bottom: 1px solid rgba(157, 217, 230, .2); }
+      .profile-cell { min-height: 92px; padding: 16px 22px 14px 0; border-right: 1px solid rgba(157, 217, 230, .16); }
+      .profile-cell + .profile-cell { padding-left: 22px; }
+      .profile-cell:last-child { border-right: 0; }
+      .profile-cell small { display: block; color: #82969c; font-size: 11px; letter-spacing: 2px; }
+      .profile-cell strong { display: block; margin-top: 14px; color: var(--text); font-size: 19px; font-weight: 500; letter-spacing: 1px; }
+      .profile-section { position: relative; z-index: 1; margin-top: 20px; }
+      .profile-label { display: block; color: var(--orange); font-size: 11px; letter-spacing: 3px; }
+      .profile-section p { max-width: 1120px; margin-top: 10px; color: #9fb1b6; font-size: 16px; line-height: 1.7; letter-spacing: 1px; }
+      .theme-list { display: flex; gap: 12px; margin-top: 14px; }
+      .theme-list span { padding: 8px 20px; border: 1px solid rgba(157, 217, 230, .25); color: #d2e0e2; font-size: 14px; letter-spacing: 2px; }
+      .model-note { padding: 14px 22px 15px; border-left: 2px solid var(--orange); background: rgba(7, 16, 21, .62); }
+      .model-note p { margin-top: 12px; }
+      .profile-footer { display: flex; gap: 38px; margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(157, 217, 230, .14); color: #81949a; font-size: 11px; letter-spacing: 3px; }
+      .profile-footer b { color: var(--orange); font-weight: 500; }
+      .profile-sources { display: flex; align-items: center; gap: 28px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(157, 217, 230, .1); color: #81949a; font-size: 10px; letter-spacing: 2px; }
+      .profile-sources b { color: #c4d4d7; font-weight: 400; }
+
+      .explode-layout { padding: 150px 112px 80px; }
+      .explode-head { display: flex; justify-content: space-between; align-items: flex-end; }
+      .explode-title { margin-top: 24px; font-family: "Barlow Condensed", sans-serif; font-size: 110px; line-height: .85; }
+      .explode-intro { max-width: 650px; margin-top: 30px; padding-left: 18px; border-left: 2px solid var(--orange); }
+      .explode-intro p { margin-top: 12px; color: #b9c7ca; font-size: 18px; line-height: 1.65; letter-spacing: 1px; }
+      .explode-intro-meta { display: flex; gap: 28px; margin-top: 18px; color: #81949a; font-size: 11px; letter-spacing: 2px; }
+      .explode-note { max-width: 360px; color: var(--muted); font-size: 17px; line-height: 1.65; text-align: right; }
+      .parts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 76px; }
+      .part { min-height: 190px; padding: 20px 22px; border: 1px solid rgba(157, 217, 230, .2); background: rgba(18, 29, 34, .76); position: relative; overflow: hidden; }
+      .part::after { content: ""; position: absolute; right: -25px; bottom: -40px; width: 110px; height: 110px; border: 1px solid currentColor; border-radius: 50%; opacity: .25; }
+      .part .part-no { color: currentColor; font-family: "Barlow Condensed", sans-serif; font-size: 44px; }
+      .part b { display: block; margin-top: 26px; color: var(--text); font-size: 16px; letter-spacing: 2px; text-transform: uppercase; }
+      .part small { display: block; margin-top: 8px; color: #aab8bc; font-size: 12px; letter-spacing: 1px; }
+      .part-detail { margin-top: 12px !important; color: #c1d0d3 !important; font-size: 13px !important; line-height: 1.45; letter-spacing: .5px !important; }
+      .part.blue { color: var(--blue); }.part.yellow { color: var(--yellow); }.part.red { color: var(--red); }.part.coral { color: #ff5c50; }.part.cyan { color: var(--cyan); }
+      .explode-line { position: absolute; left: 112px; right: 112px; top: 506px; height: 1px; background: linear-gradient(90deg, var(--orange), rgba(226,99,62,0)); transform-origin: left center; }
+
+      .part-stage { position: absolute; top: 300px; right: 112px; bottom: 92px; left: 930px; border: 1px solid rgba(157, 217, 230, .16); background: linear-gradient(145deg, rgba(18, 29, 34, .24), rgba(7, 12, 16, .08)); }
+      .part-stage::before { content: "3D STRUCTURE / RIGHT-SIDE DETAIL"; position: absolute; top: 18px; right: 22px; color: var(--cyan); font-size: 11px; letter-spacing: 3px; }
+      .part-stage::after { content: "EXPLODED AXIS // SYMMETRIC"; position: absolute; right: 22px; bottom: 18px; color: #72868c; font-size: 10px; letter-spacing: 2px; }
+      .part-frames { position: absolute; top: 385px; left: 112px; width: 690px; height: 430px; }
+      .part-frame { position: absolute; inset: 0; padding: 34px 38px; border-left: 3px solid var(--part-color); background: linear-gradient(135deg, rgba(18, 29, 34, .93), rgba(8, 13, 17, .72)); box-shadow: 0 22px 70px rgba(0,0,0,.28); opacity: 0; transform: translateX(24px); }
+      .part-frame::after { content: ""; position: absolute; right: -35px; bottom: -44px; width: 190px; height: 190px; border: 1px solid var(--part-color); border-radius: 50%; opacity: .18; }
+      .part-frame .part-frame-index { color: var(--part-color); font-family: "Barlow Condensed", sans-serif; font-size: 54px; line-height: .8; }
+      .part-frame h3 { margin-top: 26px; color: var(--text); font-family: "Barlow Condensed", sans-serif; font-size: 48px; line-height: .88; letter-spacing: 1px; text-transform: uppercase; }
+      .part-frame .part-frame-cn { margin-top: 14px; color: var(--part-color); font-size: 22px; letter-spacing: 7px; }
+      .part-frame .part-frame-copy { max-width: 540px; margin-top: 28px; color: #c4d2d5; font-size: 20px; line-height: 1.55; letter-spacing: 1px; }
+      .part-frame .part-frame-meta { display: flex; gap: 36px; margin-top: 28px; padding-top: 16px; border-top: 1px solid rgba(157, 217, 230, .18); color: #81949a; font-size: 12px; letter-spacing: 2px; }
+      .part-frame .part-frame-meta b { color: var(--text); font-weight: 500; }
+      .part-frame.blue { --part-color: var(--blue); }.part-frame.yellow { --part-color: var(--yellow); }.part-frame.red { --part-color: var(--red); }.part-frame.coral { --part-color: #ff5c50; }.part-frame.cyan { --part-color: var(--cyan); }
+      .explode-line { position: absolute; left: 112px; right: 112px; top: 286px; height: 1px; background: linear-gradient(90deg, var(--orange), rgba(226, 99, 62, 0)); transform-origin: left center; }
+      .exploded-reference { position: absolute; top: 840px; left: 112px; width: 690px; height: 118px; border: 1px solid rgba(157, 217, 230, .14); background: rgba(18, 29, 34, .2); }
+      .exploded-reference span { position: absolute; top: 12px; left: 16px; color: #7f969d; font-size: 10px; letter-spacing: 2px; }
+
+      .final-layout { display: flex; align-items: center; justify-content: center; height: 100%; padding: 140px 122px 80px; text-align: center; }
+      .final-card { position: relative; width: min(1180px, 100%); padding: 74px 90px 80px; border: 1px solid rgba(157, 217, 230, .24); background: rgba(18, 29, 34, .62); box-shadow: 0 24px 100px rgba(0,0,0,.4); }
+      .final-card::before, .final-card::after { content: ""; position: absolute; width: 110px; height: 110px; border-color: var(--orange); border-style: solid; opacity: .8; }
+      .final-card::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }.final-card::after { right: -1px; bottom: -1px; border-width: 0 2px 2px 0; }
+      .final-title { margin-top: 26px; font-family: "Barlow Condensed", sans-serif; font-size: 132px; line-height: .8; letter-spacing: 2px; text-transform: uppercase; }
+      .final-title span { color: #121d22; -webkit-text-fill-color: #121d22; -webkit-text-stroke: 2px var(--cyan); }
+      .final-copy { max-width: 650px; margin: 34px auto 0; color: var(--muted); font-size: 20px; line-height: 1.7; letter-spacing: 2px; }
+      .final-project-title { margin: 26px auto 0; color: var(--cyan); font-size: 18px; line-height: 1.3; letter-spacing: 2px; }
+      .final-project-copy { max-width: 980px; margin: 10px auto 0; color: var(--muted); font-size: 15px; line-height: 1.55; letter-spacing: 1px; }
+      .final-github { display: inline-block; margin-top: 18px; color: var(--orange); font-size: 15px; line-height: 1.3; letter-spacing: 1.2px; text-decoration: none; }
+      .final-thanks { margin-top: 16px; color: var(--cyan); font-size: 13px; line-height: 1.3; letter-spacing: 3px; }
+      .final-image { position: absolute; left: 50%; top: 44%; width: 250px; max-height: 430px; object-fit: contain; transform: translate(-50%, -50%); opacity: .2; filter: saturate(.82) contrast(1.08) drop-shadow(0 18px 30px rgba(0,0,0,.5)); pointer-events: none; }
+      .final-id { display: flex; justify-content: center; gap: 48px; margin-top: 46px; color: var(--muted); font-size: 12px; letter-spacing: 4px; }
+      .final-id b { color: var(--orange); font-weight: 500; }
+      .final-mark { position: absolute; left: 50%; top: -55px; transform: translateX(-50%); display: grid; place-items: center; width: 108px; height: 108px; border: 1px solid rgba(157,217,230,.32); border-radius: 50%; color: var(--cyan); font-family: "Barlow Condensed", sans-serif; font-size: 42px; background: var(--bg); }
+
+      .transition-flash { position: absolute; inset: 0; z-index: 20; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 48%, rgba(157,217,230,.8), rgba(157,217,230,0) 28%); mix-blend-mode: screen; }
+      .transition-rule { position: absolute; left: 0; right: 0; top: 50%; z-index: 20; height: 2px; transform-origin: center; background: var(--orange); box-shadow: 0 0 30px rgba(226,99,62,.9); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="optimus-archive" data-width="1920" data-height="1080" data-start="0" data-duration="52">
+      <canvas id="three-canvas" aria-label="擎天柱 3D 模型展示"></canvas>
+      <section id="scene-1" class="scene" data-layout-allow-overlap="true">
+        <div class="grid"></div><div class="noise"></div><div class="scanline"></div>
+        <div class="topbar" data-layout-allow-overlap="true"><div><strong>PRIME</strong> / MECHANICAL ARCHIVE / 001</div><div class="status"><i></i> SYSTEM ONLINE</div></div>
+        <div class="scene-content">
+          <p class="eyebrow s1-kicker">AUTOBOT COMMANDER</p>
+          <h1 class="hero-title s1-title">OPTIMUS<span>PRIME</span></h1>
+          <p class="hero-subtitle s1-subtitle">Q 版擎天柱</p>
+          <p class="hero-note s1-note">钢铁之躯，自由之魂。一份关于形态、结构与信念的机械档案。</p>
+          <div class="corner-meta s1-meta"><b>01 / CHIBI EDITION</b><br>IMAGEGEN · HYPER3D · ARCHIVE STUDY</div>
+        </div>
+      </section>
+
+      <section id="scene-2" class="scene" data-layout-allow-overlap="true">
+        <div class="grid"></div><div class="noise"></div><div class="scanline"></div>
+        <div class="topbar" data-layout-allow-overlap="true"><div><strong>PRIME</strong> / VISUAL DOSSIER / 002</div><div class="status"><i></i> FORM LOCKED</div></div>
+        <div class="profile-layout">
+          <article class="profile-card">
+            <p class="eyebrow s2-kicker">THE MAKING OF A LEGEND</p>
+            <h2 class="profile-title s2-title">传奇，逐层展开。</h2>
+            <p class="profile-lead s2-lead">擎天柱（Optimus Prime）是《变形金刚》系列最具代表性的角色之一，也是汽车人阵营的核心领袖。</p>
+            <div class="profile-grid s2-grid">
+              <div class="profile-cell"><small>身份 / ROLE</small><strong>汽车人领袖</strong></div>
+              <div class="profile-cell"><small>阵营 / FACTION</small><strong>汽车人 AUTOBOTS</strong></div>
+              <div class="profile-cell"><small>载具 / ALT MODE</small><strong>卡车形态</strong></div>
+              <div class="profile-cell"><small>母星 / ORIGIN</small><strong>塞伯坦 CYBERTRON</strong></div>
+            </div>
+            <div class="profile-section s2-character"><span class="profile-label">CHARACTER FILE // 角色档案</span><p>在不同动画、漫画与电影版本中，擎天柱通常以沉着、勇敢且富有责任感的领袖形象出现。他带领汽车人与霸天虎对抗，守护自由，并把保护生命与追求和平置于个人安危之上。</p></div>
+            <div class="profile-section s2-themes"><span class="profile-label">CORE THEMES // 核心主题</span><div class="theme-list"><span>自由</span><span>责任</span><span>牺牲</span><span>领导力</span></div></div>
+            <div class="profile-section model-note s2-model"><span class="profile-label">ABOUT THIS MODEL // 本次展示</span><p>当前页面以擎天柱的经典红蓝视觉为灵感，通过 Hyper3D Rodin 重建为 Q 版 3D 研究模型，并拆分为 8 个独立部件进行对称爆炸展示。它是 AI 生成的视觉再创作，不代表官方模型，也不还原真实变形机构。</p></div>
+            <div class="profile-footer s2-footer"><span>ASSET // <b>OPT-01</b></span><span>PARTS // 08</span><span>ENGINE // RODIN</span></div>
+            <div class="profile-sources s2-sources"><span>资料来源 / SOURCES</span><b>Hasbro Transformers 官方站 ↗</b><b>Optimus Prime 角色概览 ↗</b></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="scene-3" class="scene" data-layout-allow-overlap="true">
+        <div class="grid"></div><div class="noise"></div><div class="scanline"></div>
+        <div class="topbar" data-layout-allow-overlap="true"><div><strong>PRIME</strong> / COMPONENT INDEX / 003</div><div class="status"><i></i> 08 MODULES DETECTED</div></div>
+        <div class="scene-content explode-layout">
+          <div class="explode-head"><div><p class="eyebrow s3-kicker">STRUCTURE INDEX / EXPLODED</p><h2 class="explode-title s3-title">EIGHT PARTS.<br>ONE IDENTITY.</h2><div class="explode-intro s3-intro"><span class="profile-label">FORM STUDY // COMPLETE ASSEMBLY</span><p>完整形态由头部装甲、肩臂组件、胸甲、核心躯干与双腿构成。沿中心轴对称展开，逐一呈现八个模块的连接关系与角色识别特征。</p><div class="explode-intro-meta"><span>FORM / COMPLETE</span><span>MODULES / 08</span><span>AXIS / SYMMETRIC</span></div></div></div></div>
+          <div class="part-frames" data-layout-allow-overlap="true">
+            <article class="part-frame blue s3-frame-1"><span class="part-frame-index">01 / 08</span><h3>CRANIUM</h3><p class="part-frame-cn">头部装甲</p><p class="part-frame-copy">负责视觉识别与指挥单元，是擎天柱最先建立的角色识别界面。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C01</b></span><span>AXIS <b>UP / CENTER</b></span></div></article>
+            <article class="part-frame yellow s3-frame-2"><span class="part-frame-index">02 / 08</span><h3>ACTUATOR L</h3><p class="part-frame-cn">左肩臂组件</p><p class="part-frame-copy">左侧执行与动作支点，连接肩部装甲、手臂和整体动作姿态。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C02</b></span><span>AXIS <b>LEFT</b></span></div></article>
+            <article class="part-frame yellow s3-frame-3"><span class="part-frame-index">03 / 08</span><h3>ACTUATOR R</h3><p class="part-frame-cn">右肩臂组件</p><p class="part-frame-copy">右侧执行与动作支点，与左侧形成对称结构，维持动作平衡。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C03</b></span><span>AXIS <b>RIGHT</b></span></div></article>
+            <article class="part-frame red s3-frame-4"><span class="part-frame-index">04 / 08</span><h3>LEFT CHEST PLATE</h3><p class="part-frame-cn">左胸甲</p><p class="part-frame-copy">左侧标志性红色装甲界面，构成胸部识别图形和前向防护层。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C04</b></span><span>AXIS <b>FRONT / LEFT</b></span></div></article>
+            <article class="part-frame red s3-frame-5"><span class="part-frame-index">05 / 08</span><h3>RIGHT CHEST PLATE</h3><p class="part-frame-cn">右胸甲</p><p class="part-frame-copy">右侧标志性红色装甲界面，与左胸甲共同定义擎天柱的核心轮廓。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C05</b></span><span>AXIS <b>FRONT / RIGHT</b></span></div></article>
+            <article class="part-frame coral s3-frame-6"><span class="part-frame-index">06 / 08</span><h3>ENERGON CORE</h3><p class="part-frame-cn">核心躯干</p><p class="part-frame-copy">中央能量与结构枢纽，位于整套机械形态的稳定中心。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C06</b></span><span>AXIS <b>CORE / CENTER</b></span></div></article>
+            <article class="part-frame cyan s3-frame-7"><span class="part-frame-index">07 / 08</span><h3>LEG MODULE L</h3><p class="part-frame-cn">左腿与脚部</p><p class="part-frame-copy">左侧承重与站立支撑，决定整体姿态的稳定性和落地感。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C07</b></span><span>AXIS <b>LEFT / LOWER</b></span></div></article>
+            <article class="part-frame cyan s3-frame-8"><span class="part-frame-index">08 / 08</span><h3>LEG MODULE R</h3><p class="part-frame-cn">右腿与脚部</p><p class="part-frame-copy">右侧承重与站立支撑，与左腿形成最后一组对称结构。</p><div class="part-frame-meta"><span>MODULE <b>OPT-C08</b></span><span>AXIS <b>RIGHT / LOWER</b></span></div></article>
+          </div>
+          <div class="part-stage"></div>
+          <div class="exploded-reference"><span>EXPLODED POSITION REFERENCE / 08</span></div>
+        </div>
+        <div class="explode-line s3-line"></div>
+      </section>
+
+      <section id="scene-4" class="scene" data-layout-allow-overlap="true">
+        <div class="grid"></div><div class="noise"></div><div class="scanline"></div>
+        <div class="topbar s4-topbar" data-layout-allow-overlap="true"><div><strong>PRIME</strong> / RECORD CLOSED / 004</div><div class="status"><i></i> ARCHIVE COMPLETE</div></div>
+        <div class="final-layout"><div class="final-card"><img class="final-image s4-image" src="Q-optimus.webp" alt="Q版擎天柱" /><div class="final-mark">P</div><p class="eyebrow s4-kicker">ARCHIVE COMPLETE / 2026</p><h2 class="final-title s4-title">FREEDOM<br><span>IS THE CORE.</span></h2><p class="final-copy s4-copy">以模型记录形态，以拆解理解结构。Optimus Prime · Chibi Edition。</p><p class="final-project-title s4-project-title">Q版擎天柱 · Optimus Prime 3D Showcase</p><p class="final-project-copy s4-project-copy">一个基于 React、Vite、Three.js 和 React Three Fiber 制作的 Q 版擎天柱 3D 展示页。页面参考机械档案与产品拆解展示风格，支持完整形态、8 部件对称爆炸视图、结构索引高亮以及角色资料介绍。</p><a class="final-github s4-github" href="https://github.com/weedge/3D-Q-Optimus-Prime">https://github.com/weedge/3D-Q-Optimus-Prime</a><p class="final-thanks s4-thanks">感谢观看 · THANKS FOR WATCHING</p><div class="final-id s4-meta"><span><b>OPT-C01—08</b></span><span>IMAGEGEN / HYPER3D</span><span>END OF RECORD</span></div></div></div>
+      </section>
+
+      <div class="transition-flash" data-layout-allow-occlusion="true"></div><div class="transition-rule" data-layout-allow-occlusion="true"></div>
+    </div>
+    <script>window.__threeMotion = { explode: 0, activeIndex: -1, rotationY: 0, detailMode: 0, detailTurn: 0, detailFade: 0 };</script>
+    <script type="importmap">
+      {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+      const canvas = document.getElementById('three-canvas');
+      const motion = window.__threeMotion;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, premultipliedAlpha: false });
+      renderer.setPixelRatio(1);
+      renderer.setSize(1920, 1080, false);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setClearColor(0x000000, 0);
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog('#080b12', 7, 13);
+      const camera = new THREE.PerspectiveCamera(38, 1920 / 1080, 0.1, 100);
+      camera.position.set(0.3, 0.05, 9.3);
+      camera.lookAt(0.3, -0.7, 0);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.42));
+      const directional = new THREE.DirectionalLight('#b9d7ff', 3.4);
+      directional.position.set(4, 6, 5);
+      directional.castShadow = true;
+      scene.add(directional);
+      const blueLight = new THREE.PointLight('#0d73ff', 16, 9);
+      blueLight.position.set(-3, 0, 2);
+      scene.add(blueLight);
+      const redLight = new THREE.PointLight('#ff3549', 12, 8);
+      redLight.position.set(3, -2, 2);
+      scene.add(redLight);
+      const grid = new THREE.GridHelper(18, 36, '#1c3853', '#0d1827');
+      grid.position.set(0.3, -3.1, 0);
+      scene.add(grid);
+
+      const detailScene = new THREE.Scene();
+      detailScene.add(new THREE.AmbientLight(0xffffff, 0.78));
+      const detailDirectional = new THREE.DirectionalLight('#d6e6ff', 4.6);
+      detailDirectional.position.set(4, 6, 7);
+      detailScene.add(detailDirectional);
+      const detailBlueLight = new THREE.PointLight('#0d73ff', 20, 8);
+      detailBlueLight.position.set(-3, 1, 4);
+      detailScene.add(detailBlueLight);
+      const detailRedLight = new THREE.PointLight('#ff3549', 15, 8);
+      detailRedLight.position.set(3, -2, 4);
+      detailScene.add(detailRedLight);
+      const detailCamera = new THREE.PerspectiveCamera(28, 878 / 688, 0.01, 100);
+      detailCamera.position.set(0, -0.15, 7.4);
+      detailCamera.lookAt(0, -0.15, 0);
+
+      const modelGroup = new THREE.Group();
+      modelGroup.position.set(0.3, -0.85, 0);
+      scene.add(modelGroup);
+      const modules = [
+        { id: 'head', color: '#237bff', explode: [0, 0.42, 0.18], nodeName: 'root2' },
+        { id: 'left-arm', color: '#ffc247', explode: [-1.02, 0.25, 0.08], nodeName: 'root0' },
+        { id: 'right-arm', color: '#ffc247', explode: [1.02, 0.25, 0.08], nodeName: 'root5' },
+        { id: 'left-chest', color: '#ff3b42', explode: [-0.56, 0.12, 0.72], nodeName: 'root3' },
+        { id: 'right-chest', color: '#ff3b42', explode: [0.56, 0.12, 0.72], nodeName: 'root4' },
+        { id: 'core', color: '#ff5c50', explode: [0, -0.08, 1.02], nodeName: 'root6' },
+        { id: 'left-leg', color: '#49b7ff', explode: [-0.58, -0.25, 0.12], nodeName: 'root1' },
+        { id: 'right-leg', color: '#49b7ff', explode: [0.58, -0.25, 0.12], nodeName: 'root7' },
+      ];
+      let partNodes = [];
+      let detailParts = [];
+      new GLTFLoader().load('optimus-bang.glb', (gltf) => {
+        const model = gltf.scene;
+        modelGroup.add(model);
+        model.traverse((object) => {
+          if (!object.isMesh) return;
+          object.castShadow = true;
+          object.receiveShadow = true;
+          object.material = object.material.clone();
+          object.material.metalness = Math.max(object.material.metalness ?? 0, 0.55);
+          object.material.roughness = Math.min(object.material.roughness ?? 0.45, 0.35);
+          object.material.clippingPlanes = [];
+        });
+        partNodes = modules.map((part) => ({ ...part, node: model.getObjectByName(part.nodeName) })).filter((part) => part.node);
+        partNodes.forEach((part) => {
+          part.node.userData.basePosition = part.node.position.clone();
+          part.node.traverse((object) => { object.userData.partId = part.id; });
+        });
+        detailParts = partNodes.map((part) => {
+          const detailModel = part.node.clone(true);
+          detailModel.traverse((object) => {
+            if (!object.isMesh) return;
+            object.material = object.material.clone();
+            object.material.metalness = Math.max(object.material.metalness ?? 0, 0.55);
+            object.material.roughness = Math.min(object.material.roughness ?? 0.45, 0.3);
+            object.castShadow = true;
+            object.receiveShadow = true;
+          });
+          const wrapper = new THREE.Group();
+          wrapper.add(detailModel);
+          detailScene.add(wrapper);
+          detailModel.updateMatrixWorld(true);
+          const bounds = new THREE.Box3().setFromObject(detailModel);
+          const center = bounds.getCenter(new THREE.Vector3());
+          const size = bounds.getSize(new THREE.Vector3());
+          detailModel.position.sub(center);
+          const largestDimension = Math.max(size.x, size.y, size.z);
+          const fitScale = THREE.MathUtils.clamp(3.75 / Math.max(largestDimension, 0.01), 1.1, 6.5);
+          wrapper.scale.setScalar(fitScale);
+          wrapper.position.set(0, -0.15, 0);
+          wrapper.visible = false;
+          return { wrapper, color: part.color };
+        });
+      });
+
+      function renderMainScene() {
+        const progress = THREE.MathUtils.clamp(motion.explode, 0, 1);
+        modelGroup.rotation.y = motion.rotationY;
+        modelGroup.scale.setScalar(THREE.MathUtils.lerp(2.15, 1.34, progress));
+        partNodes.forEach((part, partIndex) => {
+          const [explodeX, explodeY, explodeZ] = part.explode;
+          const basePosition = part.node.userData.basePosition;
+          part.node.position.set(
+            THREE.MathUtils.lerp(basePosition.x, explodeX, progress),
+            THREE.MathUtils.lerp(basePosition.y, explodeY, progress),
+            THREE.MathUtils.lerp(basePosition.z, explodeZ, progress),
+          );
+          part.node.traverse((object) => {
+            if (!object.isMesh) return;
+            const isAllActive = motion.activeIndex < 0;
+            const isActive = isAllActive || motion.activeIndex === partIndex;
+            object.material.emissive.set(isAllActive ? '#123f93' : isActive ? part.color : '#020407');
+            object.material.emissiveIntensity = isAllActive ? 0.18 : isActive ? 1.15 : 0.01;
+            object.material.transparent = !isAllActive;
+            object.material.opacity = isAllActive || isActive ? 1 : 0.2;
+            object.material.depthWrite = isAllActive || isActive;
+            object.material.wireframe = false;
+          });
+        });
+      }
+
+      function renderDetailScene() {
+        detailParts.forEach((part, partIndex) => {
+          part.wrapper.visible = partIndex === motion.activeIndex;
+          part.wrapper.rotation.y = motion.detailTurn;
+          part.wrapper.rotation.x = Math.sin(motion.detailTurn * 1.6) * 0.035;
+          part.wrapper.traverse((object) => {
+            if (!object.isMesh) return;
+            object.material.emissive.set(part.color);
+            object.material.emissiveIntensity = 0.38;
+            object.material.opacity = motion.detailFade;
+            object.material.transparent = motion.detailFade < 1;
+            object.material.depthWrite = motion.detailFade > 0.5;
+          });
+        });
+      }
+
+      function configureMainCamera(aspect, fullFrame) {
+        camera.aspect = aspect;
+        camera.position.set(0.3, 0.05, 9.3);
+        camera.lookAt(0.3, -0.7, 0);
+        if (fullFrame) {
+          camera.setViewOffset(1920, 1080, 1920 * (0.5 - 0.68), 0, 1920, 1080);
+        } else {
+          camera.clearViewOffset();
+        }
+        camera.updateProjectionMatrix();
+      }
+
+      function renderScene() {
+        renderer.setScissorTest(false);
+        renderer.setViewport(0, 0, 1920, 1080);
+        renderer.clear(true, true, true);
+        renderMainScene();
+        if (motion.detailMode < 0.5) {
+          configureMainCamera(1920 / 1080, true);
+          renderer.render(scene, camera);
+          return;
+        }
+        configureMainCamera(690 / 118, false);
+        renderer.setScissorTest(true);
+        renderer.setScissor(112, 1080 - 840 - 118, 690, 118);
+        renderer.setViewport(112, 1080 - 840 - 118, 690, 118);
+        renderer.render(scene, camera);
+        renderer.setScissor(930, 1080 - 300 - 688, 878, 688);
+        renderer.setViewport(930, 1080 - 300 - 688, 878, 688);
+        detailCamera.aspect = 878 / 688;
+        detailCamera.updateProjectionMatrix();
+        renderDetailScene();
+        renderer.render(detailScene, detailCamera);
+        renderer.setScissorTest(false);
+      }
+      window.__renderThree = renderScene;
+      renderScene();
+    </script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      tl.set('.transition-rule', { scaleX: 0 }, 0);
+      tl.set(window.__threeMotion, { explode: 0, activeIndex: -1, rotationY: 0, detailMode: 0, detailTurn: 0, detailFade: 0 }, 0);
+      tl.eventCallback('onUpdate', function () { window.__renderThree?.(); });
+
+      tl.from('.s1-kicker', { x: -52, opacity: 0, duration: .55, ease: 'power3.out' }, .22);
+      tl.from('.s1-title', { y: 74, opacity: 0, duration: .8, ease: 'expo.out' }, .35);
+      tl.from('.s1-subtitle', { y: 16, opacity: 0, duration: .65, ease: 'sine.out' }, .72);
+      tl.from('.s1-note', { x: 28, opacity: 0, duration: .55, ease: 'power2.out' }, .92);
+      tl.from('.s1-meta', { y: 22, opacity: 0, duration: .4, ease: 'back.out(1.6)' }, 1.12);
+      tl.to(window.__threeMotion, { rotationY: .38, duration: 4.8, ease: 'sine.inOut' }, 1.6);
+
+      tl.to('.transition-rule', { scaleX: 1, duration: .28, ease: 'expo.in' }, 5.2);
+      tl.to('.transition-flash', { opacity: .85, duration: .16, ease: 'power4.out' }, 5.38);
+      tl.to('#scene-2', { opacity: 1, duration: .68, ease: 'power1.inOut' }, 5.46);
+      tl.set('#scene-1', { opacity: 0 }, 6.12);
+      tl.to('.transition-rule', { scaleX: 0, duration: .34, ease: 'power2.out' }, 5.58);
+      tl.to('.transition-flash', { opacity: 0, duration: .5, ease: 'sine.out' }, 5.6);
+
+      tl.from('.s2-kicker', { y: 30, opacity: 0, duration: .5, ease: 'power2.out' }, 5.72);
+      tl.from('.s2-title', { x: -58, opacity: 0, duration: .8, ease: 'expo.out' }, 5.88);
+      tl.from('.s2-lead', { y: 28, opacity: 0, duration: .62, ease: 'sine.out' }, 6.24);
+      tl.from('.s2-grid', { y: 32, opacity: 0, duration: .62, ease: 'back.out(1.35)' }, 6.48);
+      tl.from('.s2-character', { y: 24, opacity: 0, duration: .55, ease: 'power3.out' }, 6.82);
+      tl.from('.s2-themes', { x: 28, opacity: 0, duration: .5, ease: 'circ.out' }, 7.28);
+      tl.from('.s2-model', { y: 26, opacity: 0, duration: .58, ease: 'power2.out' }, 7.72);
+      tl.from('.s2-footer', { y: 20, opacity: 0, duration: .45, ease: 'sine.out' }, 8.36);
+      tl.from('.s2-sources', { y: 16, opacity: 0, duration: .42, ease: 'circ.out' }, 8.62);
+
+      tl.to('.transition-rule', { scaleX: 1, duration: .24, ease: 'expo.in' }, 11.15);
+      tl.to('.transition-flash', { opacity: .72, duration: .16, ease: 'power4.out' }, 11.32);
+      tl.to('#scene-3', { opacity: 1, duration: .62, ease: 'power1.inOut' }, 11.42);
+      tl.set('#scene-2', { opacity: 0 }, 12.05);
+      tl.to('.transition-rule', { scaleX: 0, duration: .3, ease: 'power2.out' }, 11.56);
+      tl.to('.transition-flash', { opacity: 0, duration: .48, ease: 'sine.out' }, 11.58);
+
+      tl.from('.s3-kicker', { x: -42, opacity: 0, duration: .5, ease: 'power3.out' }, 11.72);
+      tl.from('.s3-title', { y: 54, opacity: 0, duration: .75, ease: 'expo.out' }, 11.88);
+      tl.from('.s3-intro', { y: 28, opacity: 0, duration: .58, ease: 'power2.out' }, 12.22);
+      tl.from('.s3-line', { scaleX: 0, duration: .72, ease: 'power4.out' }, 12.18);
+      tl.to('.s3-intro', { y: -12, opacity: 0, duration: .36, ease: 'power2.in' }, 14.38);
+      tl.to(window.__threeMotion, { explode: 1, duration: .95, ease: 'power3.out' }, 11.48);
+      tl.set(window.__threeMotion, { detailMode: 0, activeIndex: -1, detailTurn: 0, detailFade: 0 }, 11.48);
+
+      tl.set(window.__threeMotion, { detailMode: 1, detailFade: 1, activeIndex: 0, detailTurn: -0.16 }, 14.82);
+      tl.fromTo('.s3-frame-1', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .5, ease: 'power3.out' }, 14.82);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 15.0);
+      tl.to('.s3-frame-1', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 18.76);
+      tl.fromTo('.s3-frame-2', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 18.86);
+      tl.set(window.__threeMotion, { activeIndex: 1, detailTurn: -0.16 }, 18.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 19.0);
+      tl.to('.s3-frame-2', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 22.76);
+      tl.fromTo('.s3-frame-3', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 22.86);
+      tl.set(window.__threeMotion, { activeIndex: 2, detailTurn: -0.16 }, 22.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 23.0);
+      tl.to('.s3-frame-3', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 26.76);
+      tl.fromTo('.s3-frame-4', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 26.86);
+      tl.set(window.__threeMotion, { activeIndex: 3, detailTurn: -0.16 }, 26.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 27.0);
+      tl.to('.s3-frame-4', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 30.76);
+      tl.fromTo('.s3-frame-5', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 30.86);
+      tl.set(window.__threeMotion, { activeIndex: 4, detailTurn: -0.16 }, 30.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 31.0);
+      tl.to('.s3-frame-5', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 34.76);
+      tl.fromTo('.s3-frame-6', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 34.86);
+      tl.set(window.__threeMotion, { activeIndex: 5, detailTurn: -0.16 }, 34.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 35.0);
+      tl.to('.s3-frame-6', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 38.76);
+      tl.fromTo('.s3-frame-7', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 38.86);
+      tl.set(window.__threeMotion, { activeIndex: 6, detailTurn: -0.16 }, 38.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 39.0);
+      tl.to('.s3-frame-7', { x: -18, opacity: 0, duration: .24, ease: 'power2.in' }, 42.76);
+      tl.fromTo('.s3-frame-8', { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: .34, ease: 'power3.out' }, 42.86);
+      tl.set(window.__threeMotion, { activeIndex: 7, detailTurn: -0.16 }, 42.86);
+      tl.fromTo(window.__threeMotion, { detailTurn: -0.16 }, { detailTurn: 0.16, duration: 3.7, ease: 'sine.inOut' }, 43.0);
+
+      tl.to('.transition-rule', { scaleX: 1, duration: .28, ease: 'expo.in' }, 47.08);
+      tl.to('.transition-flash', { opacity: .8, duration: .16, ease: 'power4.out' }, 47.24);
+      tl.to('#scene-4', { opacity: 1, duration: .72, ease: 'power1.inOut' }, 47.36);
+      tl.set('#scene-3', { opacity: 0 }, 48.1);
+      tl.set(window.__threeMotion, { detailMode: 0, detailFade: 0, activeIndex: -1 }, 47.4);
+      tl.to('.transition-rule', { scaleX: 0, duration: .34, ease: 'power2.out' }, 47.56);
+      tl.to('.transition-flash', { opacity: 0, duration: .52, ease: 'sine.out' }, 47.58);
+
+      tl.from('.s4-kicker', { y: 24, opacity: 0, duration: .5, ease: 'power2.out' }, 47.64);
+      tl.from('.s4-topbar', { opacity: 0, duration: .4, ease: 'sine.out' }, 48.16);
+      tl.from('.s4-title', { scale: .84, opacity: 0, duration: 1.05, ease: 'expo.out' }, 47.82);
+      tl.from('.s4-copy', { y: 30, opacity: 0, duration: .58, ease: 'sine.out' }, 48.2);
+      tl.from('.s4-project-title', { y: 24, opacity: 0, duration: .48, ease: 'power2.out' }, 48.42);
+      tl.from('.s4-project-copy', { y: 18, opacity: 0, duration: .52, ease: 'sine.out' }, 48.54);
+      tl.from('.s4-github', { y: 14, opacity: 0, duration: .44, ease: 'power2.out' }, 48.72);
+      tl.from('.s4-thanks', { y: 12, opacity: 0, duration: .42, ease: 'power2.out' }, 48.9);
+      tl.fromTo('.s4-image', { y: 24, opacity: 0, scale: .9 }, { y: 0, opacity: .2, scale: 1, duration: .72, ease: 'power3.out' }, 48.76);
+      tl.from('.s4-meta', { y: 18, opacity: 0, duration: .72, ease: 'back.out(1.25)' }, 48.48);
+      tl.to('.s4-title', { y: -7, duration: 2.7, ease: 'sine.inOut' }, 49.0);
+      tl.to('.s4-meta', { opacity: 0, duration: .28, ease: 'power2.in' }, 51.2);
+      tl.to('.s4-image', { opacity: .92, scale: 1.06, duration: .48, ease: 'power2.out' }, 51.18);
+      tl.to('.s4-project-copy', { opacity: 0, duration: .28, ease: 'power2.in' }, 51.24);
+      tl.to('.s4-project-title', { opacity: 0, duration: .28, ease: 'power2.in' }, 51.26);
+      tl.to('.s4-copy', { opacity: 0, duration: .3, ease: 'power2.in' }, 51.28);
+      tl.to('.s4-title', { opacity: 0, duration: .36, ease: 'power2.in' }, 51.36);
+      tl.to('.s4-kicker', { opacity: 0, duration: .24, ease: 'power2.in' }, 51.46);
+
+      window.__timelines['optimus-archive'] = tl;
+    </script>
+  </body>
+</html>

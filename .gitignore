@@ -28,3 +28,6 @@ dist-ssr
 /.history
 /build
 
+# hyperframes
+renders
+verification

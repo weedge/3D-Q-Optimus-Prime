@@ -1,0 +1,7 @@
+interface:
+  display_name: "HyperFrames 3D 展示视频"
+  short_description: "制作横版与竖版 3D 角色展示视频"
+  default_prompt: "使用 $hyperframes-3d-showcase-video 将 3D 展示页制作成横版和手机竖版视频，并验证完整形态、部件高亮与片尾信息。"
+
+policy:
+  allow_implicit_invocation: true

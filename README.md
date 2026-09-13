@@ -131,3 +131,9 @@ python3 skill/hyper3d-model-landing-page/scripts/generate_hyper3d_model.py --hel
 ## 许可说明
 
 本项目为 3D 交互展示实验项目。使用或分发模型资源、字体及第三方内容时，请确认对应的版权和授权范围。
+
+# 参考：
+- https://developers.openai.com/showcase/games
+- https://developers.openai.com/showcase/apps
+- https://developers.openai.com/showcase/websites
+- https://developers.openai.com/showcase?source=community
