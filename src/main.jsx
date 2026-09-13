@@ -8,7 +8,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import './styles.css';
 
 const modules = [
-  { id: 'head', label: 'Cranium', cn: '头部装甲', color: '#237bff', explode: [0, 1.22, 0.18], code: 'OPT-C01' },
+  { id: 'head', label: 'Cranium', cn: '头部装甲', color: '#237bff', explode: [0, 0.42, 0.18], code: 'OPT-C01' },
   { id: 'left-arm', label: 'Left actuator', cn: '左肩臂组件', color: '#ffc247', explode: [-1.02, 0.25, 0.08], code: 'OPT-C02' },
   { id: 'right-arm', label: 'Right actuator', cn: '右肩臂组件', color: '#ffc247', explode: [1.02, 0.25, 0.08], code: 'OPT-C03' },
   { id: 'left-chest', label: 'Left chest plate', cn: '左胸甲', color: '#ff3b42', explode: [-0.56, 0.12, 0.72], code: 'OPT-C04' },
