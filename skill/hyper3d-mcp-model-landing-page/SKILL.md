@@ -1,52 +1,56 @@
 ---
 name: hyper3d-mcp-model-landing-page
-description: "Create a complete 3D product or character showcase from a local image, image URL, or OpenAI-generated image, using the Hyper3D MCP tools rather than the direct Hyper3D HTTP Python script. Import the reference, call Rodin generation, wait for completion, retrieve the model, optionally run BANG part splitting, integrate the GLB into a Three.js/React landing page, and verify the result."
+description: "从本地图片、图片 URL 或 OpenAI 生成图片创建完整的 3D 产品/角色展示页，并使用 Hyper3D MCP 而不是直接 HTTP Python 脚本生成模型。流程包括导入参考图、调用 Rodin、等待完成、获取模型、可选 BANG 部件拆解、接入 Three.js/React 落地页和结果验证。"
 ---
 
-# Hyper3D MCP Model Landing Page
+# Hyper3D MCP 模型落地页
 
-## Purpose
+## 作用
 
-Use this Skill when the 3D generation step must run through Hyper3D MCP. The image-generation step remains a separate Python script, while model generation, waiting, result retrieval, and optional part splitting use `mcp__hyper3d__*` tools directly.
+本 Skill 与 `hyper3d-model-landing-page` 的区别是：3D 模型生成、任务等待、结果获取和可选部件拆解必须使用 Hyper3D MCP 工具直接完成。
 
-Do not call the direct HTTP workflow in `../hyper3d-model-landing-page/scripts/generate_hyper3d_model.py` for this Skill. That script belongs to the non-MCP variant.
+不要调用 `../hyper3d-model-landing-page/scripts/generate_hyper3d_model.py`。该脚本属于直接 HTTP API 版本。
 
-## MCP Prerequisite
+## MCP 前置检查
 
-Before preparing uploads or spending generation credits, confirm that the current client exposes the Hyper3D MCP tools, especially `rodin_generate`, `rodin_wait`, and `rodin_get_result`. If Hyper3D MCP is unavailable, do not fall back to the direct HTTP script and do not pretend that generation can start. Stop and show the following installation prompt verbatim:
+在准备上传或消耗生成额度前，先确认当前客户端能使用 Hyper3D MCP 工具，至少包括 `rodin_generate`、`rodin_wait` 和 `rodin_get_result`。如果 Hyper3D MCP 不可用：
+
+1. 不要退回直接 HTTP 脚本。
+2. 不要假装生成任务已经开始。
+3. 停止流程，并原样显示以下安装提示：
 
 > 请在我当前使用的客户端（Codex 或 Claude Code）中配置 Hyper3D MCP：服务名 hyper3d，Streamable HTTP 地址 https://api.hyper3d.com/api/mcp，使用 OAuth 授权。按当前客户端的方式配置，保留其他设置，已有配置请复用或更新。引导我在浏览器中完成授权，然后验证连接并列出可用工具。如需重启，请告诉我。
 
-After the user completes the setup, re-check the MCP connection and list the available Hyper3D tools before continuing. Reuse an existing configuration when present; do not overwrite unrelated MCP services or settings.
+用户完成配置后，重新检查 MCP 连接并列出可用的 Hyper3D 工具，再继续流程。已有配置应复用或更新，不要覆盖无关的 MCP 服务或设置。
 
-## Inputs and Outputs
+## 输入与输出
 
-Reference inputs:
+支持的参考图输入：
 
-- Local image: upload through `rodin_create_uploads` and its presigned PUT URL.
-- Image URL: download and validate it locally, then upload it through `rodin_create_uploads`.
-- OpenAI-generated image: run `scripts/generate_reference_image.py`, then upload its output.
-- Chat attachment: use `rodin_import_images` when the current host supplies the required attachment metadata.
+- 本地图片：通过 `rodin_create_uploads` 获取上传地址后上传。
+- 图片 URL：下载并校验后，通过 `rodin_create_uploads` 上传。
+- OpenAI 生成图片：运行 `scripts/generate_reference_image.py` 后上传输出文件。
+- 对话附件：当前宿主提供附件元数据时，使用 `rodin_import_images`。
 
-Expected outputs:
+预期输出：
 
-- A permanent Hyper3D result page from `rodin_get_result.display_url`.
-- A downloaded GLB or other requested geometry file for the frontend.
-- Optional BANG result and separate-part model.
-- A runnable landing page using the generated model.
-- A concise handoff containing model paths, result page, and verification status.
+- `rodin_get_result.display_url` 返回的永久 Hyper3D 结果页。
+- 用于前端的 GLB 或其他指定格式模型文件。
+- 可选的 BANG 拆解结果和独立部件模型。
+- 使用生成模型的可运行落地展示页。
+- 包含模型路径、结果页和验证状态的交付说明。
 
-Generation and BANG splitting consume credits. Submit only the exact generation and split requested by the user. Do not create extra variants or retry a timed-out paid generation blindly.
+生成和 BANG 拆解会消耗额度。只提交用户明确要求的生成和拆解，不要自动创建额外版本，也不要盲目重试超时的付费任务。
 
-## Quick Start
+## 快速开始
 
-Install the image-script dependency only when OpenAI image generation is needed:
+只有在需要 OpenAI 生图时才安装图片脚本依赖：
 
 ```bash
 python3 -m pip install -r scripts/requirements.txt
 ```
 
-Generate a reference image:
+生成参考图：
 
 ```bash
 OPENAI_API_KEY="$OPENAI_API_KEY" \
@@ -55,102 +59,103 @@ python3 scripts/generate_reference_image.py \
   --output ./artifacts/reference.png
 ```
 
-Then use the Hyper3D MCP flow described below with the generated file. The MCP calls are not replaced by a Python HTTP request.
+然后使用下面的 Hyper3D MCP 流程处理生成的图片。不要用 Python HTTP 请求替代 MCP 调用。
 
-## MCP Workflow
+## MCP 工作流程
 
-### 1. Prepare and upload the reference
+### 1. 准备并上传参考图
 
-For local files and downloaded URLs:
+对于本地文件和下载的 URL：
 
-1. Confirm the file is non-empty and is a supported raster image.
-2. Call `mcp__hyper3d__rodin_create_uploads` with filename, MIME type, and byte size.
-3. Upload the file bytes to every returned presigned PUT URL.
-4. Pass the returned `upload_id` values to `mcp__hyper3d__rodin_generate` in `reference_upload_ids`, preserving image order.
+1. 确认文件非空且为支持的栅格图片。
+2. 使用文件名、MIME 类型和字节数调用 `mcp__hyper3d__rodin_create_uploads`。
+3. 将文件字节上传到每个返回的预签名 PUT 地址。
+4. 按图片顺序，将返回的 `upload_id` 传给 `mcp__hyper3d__rodin_generate` 的 `reference_upload_ids`。
 
-For ChatGPT conversation attachments, call `mcp__hyper3d__rodin_import_images` with the attachment `file_id`, `download_url`, filename, and MIME type. Pass its upload IDs to `rodin_generate`.
+对于 ChatGPT 对话附件，在附件元数据可用时调用 `mcp__hyper3d__rodin_import_images`，传入 `file_id`、`download_url`、文件名和 MIME 类型，再将返回的上传 ID 传给 `rodin_generate`。
 
-If image upload is blocked, report that limitation and direct the user to upload through Hyper3D's hosted flow. Do not pretend the generation job was submitted.
+如果图片上传受阻，说明当前环境限制并引导用户使用 Hyper3D 网页上传，不要声称任务已经提交。
 
-### 2. Generate the base model
+### 2. 生成基础模型
 
-Call `mcp__hyper3d__rodin_generate` with a non-empty prompt, uploaded reference IDs, or both. Default to:
+使用非空提示词、上传的参考图 ID 或二者调用 `mcp__hyper3d__rodin_generate`。默认使用：
 
 - `geometry_file_format: "glb"`
 - `tier: "Gen-2.5-Medium"`
 - `mesh_mode: "Quad"`
-- A quality target valid for the chosen mesh mode
+- 符合网格模式的质量目标
 
-For a character or robot, prompt for a complete full-body model, readable silhouette, feet, lower legs, and distinct component boundaries. Do not use a head-only reference or crop when the page needs a complete figure.
+角色或机器人必须要求完整身体、清晰轮廓、脚部、下腿和明确的部件边界。页面需要完整模型时，不要使用只有头部的参考图或裁切图。
 
-Use `mcp__hyper3d__rodin_wait` with the returned `generation_id`. A timeout is not a failure; inspect the latest state and continue later rather than submitting the same request again. If generation fails, report the returned status and do not spend credits on an automatic retry.
+使用返回的 `generation_id` 调用 `mcp__hyper3d__rodin_wait`。超时不代表失败，应读取最新状态并在之后继续，不要重复提交同一任务。生成失败时报告返回状态，不要自动消耗额度重试。
 
-### 3. Retrieve the model file
+### 3. 获取模型文件
 
-After the generation reaches a completed state, call `mcp__hyper3d__rodin_get_result`.
+任务完成后调用 `mcp__hyper3d__rodin_get_result`：
 
-- Use `display_url` as the user-facing permanent result link.
-- Use a returned temporary `files[].url` only to download the requested model into the project, because the user explicitly requested a 3D file and landing page.
-- Identify the actual geometry file by response metadata and file signature; do not assume the first URL is a GLB.
-- Save the downloaded file with a stable name such as `public/generated-model.glb`.
-- Preserve the generation response and model path in a local manifest without API keys.
+- 使用 `display_url` 作为面向用户的永久结果链接。
+- 用户明确要求 3D 文件和落地页时，才使用返回的临时 `files[].url` 下载模型。
+- 根据响应元数据和文件签名识别真正的几何文件，不要假设第一个 URL 一定是 GLB。
+- 使用稳定文件名保存，例如 `public/generated-model.glb`。
+- 保存脱敏后的生成响应和模型路径，不要保存 API 密钥。
 
-### 4. Split into independent parts when requested
+### 4. 按要求拆分独立部件
 
-Call `mcp__hyper3d__rodin_generate_bang` only after the base generation completes. Pass its `asset_id` as the completed base `generation_id`, and use the user's requested part count in `instruction` or the split settings.
+基础生成完成后才能调用 `mcp__hyper3d__rodin_generate_bang`。将已完成基础任务的 `generation_id` 作为 `asset_id`，并在 `instruction` 或拆解参数中写明用户要求的部件数量。
 
-For a symmetric robot, use explicit semantic guidance such as head, left/right arms, left/right chest, core torso, and left/right legs/feet. Wait for the BANG generation, retrieve its result, and use the BANG file as the exploded-view source. Never simulate independent parts with CSS or arbitrary mesh offsets when the user explicitly requested an actual split.
+对于对称机器人，使用头部、左右手臂、左右胸甲、核心躯干、左右腿/脚等明确语义。等待 BANG 完成后再次获取结果，并用 BANG 文件作为爆炸视图来源。用户要求真实独立部件时，不要用 CSS 或任意网格位移伪造拆解。
 
-## Landing Page Integration
+## 落地展示页接入
 
-Inspect the existing frontend before scaffolding. Reuse the current React/Vite/Three.js page and visual template when it matches the requested showcase. Copy the retrieved GLB into `public/` and keep loading/error states visible.
+搭建前先检查现有前端，优先复用当前 React/Vite/Three.js 页面与视觉模板。将获取的 GLB 复制到 `public/`，并保留加载中和加载失败状态。
 
-The viewer must:
+展示器必须：
 
-- Load the actual GLB with `GLTFLoader`.
-- Inspect the scene hierarchy and confirm every top-level part/group before creating labels.
-- Map each structure-index button to the exact node/group; never guess names or fixed ordering.
-- Capture assembled and exploded transforms in the same coordinate space.
-- Interpolate continuously from assembled to exploded state with damping/easing.
-- Use mirrored left/right targets and a stable centerline for symmetric displays.
-- Fit camera bounds across every visible mesh in both states, including feet and lower geometry.
-- Make selection visibly different with emissive color, opacity, outline, or a callout.
-- Keep orbit, zoom, reset, progress, and full-screen controls accessible.
+- 使用 `GLTFLoader` 加载真实 GLB。
+- 检查场景层级，确认每个顶层部件/组后再创建索引标签。
+- 将每个索引按钮绑定到准确的节点/组，不得猜测名称或固定顺序。
+- 在同一坐标系中记录完整形态和爆炸形态的变换。
+- 使用带缓动的连续进度进行展开动画。
+- 使用左右镜像目标位移并保持中心线稳定。
+- 根据两种状态下所有可见网格计算相机范围，确保脚部和最低几何体在画面中。
+- 点击索引时用发光、透明度、描边或标注明显区分准确部件。
+- 保持旋转、缩放、重置、进度和全屏控件可用。
 
-For a product-style landing page, include a hero title, model status label, structure index, assembled/exploded timeline, interaction hint, and an information panel. Use external references as visual direction only; do not copy proprietary text or artwork verbatim.
+产品风格页面应包含标题、模型状态、结构索引、完整/爆炸时间轴、交互提示和信息面板。外部参考只用于视觉方向，不要原样复制受版权保护的文本或图片。
 
-If factual character or product information is added, research authoritative sources, add source links to the page, and label the generated model as a non-official visual study when applicable.
+页面添加角色或产品资料时，先查找权威来源，保留页面来源链接，并标注生成模型为非官方视觉研究（如适用）。
 
-## Verification
+## 验证
 
-Run the existing frontend build, normally `npm run build`. Verify:
+运行已有的前端构建命令，通常是 `npm run build`。验证：
 
-- The page and generated GLB return HTTP 200.
-- The complete object is visible in assembled view, including feet.
-- The progress control visibly separates every requested independent part.
-- Every index item highlights the matching physical part.
-- The model does not twist or collapse because of mixed local/world transforms.
-- The modal, timeline, and interaction hint do not overlap on desktop or mobile.
-- The console has no new model-loading or interaction errors.
+- 页面和生成的 GLB 返回 HTTP 200。
+- 完整形态能显示整个对象，包括脚部。
+- 进度控制能逐步分离所有请求的独立部件。
+- 每个索引项都能高亮对应的实体部件。
+- 没有因局部/世界变换混用造成的扭曲或塌缩。
+- 弹窗、时间轴和交互提示在桌面端与移动端不重叠。
+- 没有新增的模型加载或交互控制台错误。
 
-Deliver the frontend path, model path, Hyper3D `display_url`, and a list of changed files. State clearly if the MCP result only provides a hosted result page and no downloadable geometry file.
+交付时说明前端路径、模型路径、Hyper3D `display_url` 和修改文件。如果结果只有托管结果页而没有可下载几何文件，必须明确说明。
 
-## Python Script Contract
+## Python 脚本说明
 
-`scripts/generate_reference_image.py` is intentionally limited to OpenAI reference-image generation:
+`scripts/generate_reference_image.py` 只负责 OpenAI 参考图生成：
 
-- `--prompt`: image prompt
-- `--output`: PNG destination
-- `--model`, `--size`, `--quality`: image-generation settings
+- `--prompt`：生图提示词
+- `--output`：PNG 目标路径
+- `--model`、`--size`、`--quality`：生图参数
 
-It requires `OPENAI_API_KEY` and writes the image locally. It must not call Hyper3D. The Hyper3D model step belongs exclusively to the MCP tools in this Skill.
+该脚本需要 `OPENAI_API_KEY`，会将图片写入本地，不能调用 Hyper3D。Hyper3D 模型步骤专属于本 Skill 的 MCP 工具流程。
 
-## Common Failure Modes
+## 常见问题
 
-- **Upload rejected**: check MIME type, byte size, and presigned URL upload before calling `rodin_generate`.
-- **Head-only model**: improve the reference and prompt with full-body, feet, and lower-body requirements; do not hide missing geometry by zooming out.
-- **BANG parts overlap**: inspect actual generated part hierarchy and transform spaces before changing camera scale.
-- **Index mismatch**: inspect confirmed scene node names and keep one explicit mapping from index entry to group.
-- **No visible explosion**: verify that the BANG result is loaded and that the progress value interpolates real part transforms.
-- **Generation timeout**: read the existing generation state and continue; do not submit a duplicate paid job.
-- **MCP upload unavailable**: preserve the local reference and explain that the current environment cannot upload it; provide the Hyper3D hosted upload fallback.
+- **未安装 MCP**：停止流程，显示 MCP 安装提示；不要切换到直接 HTTP 版本。
+- **上传被拒绝**：检查 MIME 类型、字节数和预签名 URL 上传结果，再调用 `rodin_generate`。
+- **只得到头部模型**：优化参考图和提示词，加入完整身体、脚部和下半身要求，不要用缩小相机隐藏缺失几何体。
+- **BANG 部件重叠**：检查实际生成的部件层级和坐标系，再调整相机。
+- **索引错位**：读取确认过的场景节点名称，使用明确的索引到节点映射。
+- **没有爆炸效果**：检查是否加载了 BANG 结果，以及进度值是否插值真实部件变换。
+- **MCP 上传不可用**：保留本地参考图，说明当前环境无法上传，并引导用户使用 Hyper3D 网页上传。
+- **任务超时**：读取已有 `generation_id` 的状态并继续，不要重复创建付费任务。

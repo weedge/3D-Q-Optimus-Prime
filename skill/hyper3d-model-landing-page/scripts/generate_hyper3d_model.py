@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a Hyper3D model artifact from a local image or image URL."""
+"""使用本地图片或图片 URL 生成 Hyper3D 模型文件。"""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from urllib.request import Request, urlopen
 try:
     import requests
 except ImportError as exc:
-    raise SystemExit("Missing dependency: requests. Run python3 -m pip install -r requirements.txt") from exc
+    raise SystemExit("缺少 requests 依赖，请运行 python3 -m pip install -r requirements.txt") from exc
 
 
 IMAGE_SIGNATURES = {
@@ -61,7 +61,7 @@ def detect_image_mime(path: Path) -> str:
         return "image/webp"
     if len(header) >= 12 and header[4:12] in (b"ftypavif", b"ftypavis"):
         return "image/avif"
-    fail(f"Unsupported or invalid image file: {path}")
+    fail(f"不支持或无效的图片文件：{path}")
 
 
 def extension_for_mime(mime: str) -> str:
@@ -79,7 +79,7 @@ def extension_for_mime(mime: str) -> str:
 def copy_local_image(source: str, output: Path) -> Path:
     source_path = Path(source).expanduser().resolve()
     if not source_path.is_file() or source_path.stat().st_size == 0:
-        fail(f"Local image does not exist or is empty: {source_path}")
+        fail(f"本地图片不存在或为空：{source_path}")
     mime = detect_image_mime(source_path)
     target = output / f"reference{extension_for_mime(mime)}"
     shutil.copy2(source_path, target)
@@ -93,11 +93,11 @@ def download_image(url: str, output: Path) -> Path:
             content_type = response.headers.get_content_type()
             payload = response.read(25 * 1024 * 1024 + 1)
     except (HTTPError, URLError, TimeoutError) as exc:
-        fail(f"Could not download image URL: {exc}")
+        fail(f"无法下载图片 URL：{exc}")
     if len(payload) == 0:
-        fail("Image URL returned an empty response")
+        fail("图片 URL 返回了空响应")
     if len(payload) > 25 * 1024 * 1024:
-        fail("Image URL response exceeds the 25 MB safety limit")
+        fail("图片 URL 响应超过 25 MB 安全限制")
     suffix = extension_for_mime(content_type) if content_type.startswith("image/") else Path(url.split("?", 1)[0]).suffix
     target = output / f"reference{suffix or '.img'}"
     target.write_bytes(payload)
@@ -117,7 +117,7 @@ def request_json(session: requests.Session, method: str, url: str, **kwargs: Any
     payload = response_json(response)
     if not response.ok:
         detail = json.dumps(redact(payload), ensure_ascii=False)[:2000]
-        fail(f"Hyper3D API request failed ({response.status_code}): {detail}")
+        fail(f"Hyper3D API 请求失败（{response.status_code}）：{detail}")
     return payload
 
 
@@ -160,7 +160,7 @@ def find_task_id(payload: Any) -> str:
             result = first_scalar(value)
             if result:
                 return result
-    fail(f"Could not find a Rodin task ID in response: {json.dumps(redact(payload), ensure_ascii=False)[:2000]}")
+    fail(f"响应中没有找到 Rodin 任务 ID：{json.dumps(redact(payload), ensure_ascii=False)[:2000]}")
 
 
 def find_subscription_key(payload: Any) -> str | None:
@@ -208,10 +208,10 @@ def poll_task(session: requests.Session, base_url: str, task_id: str, subscripti
         response = session.post(f"{base_url}/status", json=body, timeout=120)
         latest = response_json(response)
         if not response.ok:
-            fail(f"Hyper3D status request failed ({response.status_code}): {json.dumps(redact(latest), ensure_ascii=False)[:2000]}")
+            fail(f"Hyper3D 状态请求失败（{response.status_code}）：{json.dumps(redact(latest), ensure_ascii=False)[:2000]}")
         done, failed = is_done(latest)
         if failed:
-            fail(f"Hyper3D task failed: {json.dumps(redact(latest), ensure_ascii=False)[:4000]}")
+            fail(f"Hyper3D 任务失败：{json.dumps(redact(latest), ensure_ascii=False)[:4000]}")
         if done:
             return latest
         retry_after = response.headers.get("Retry-After")
@@ -220,7 +220,7 @@ def poll_task(session: requests.Session, base_url: str, task_id: str, subscripti
         except ValueError:
             pass
         time.sleep(interval)
-    fail(f"Timed out waiting for Hyper3D task {task_id}. Last status: {json.dumps(redact(latest), ensure_ascii=False)[:2000]}")
+    fail(f"等待 Hyper3D 任务 {task_id} 超时。最后状态：{json.dumps(redact(latest), ensure_ascii=False)[:2000]}")
 
 
 def find_urls(value: Any) -> list[str]:
@@ -281,7 +281,7 @@ def submit_rodin(session: requests.Session, base_url: str, image: Path, args: ar
         )
     payload = response_json(response)
     if not response.ok:
-        fail(f"Hyper3D generation failed ({response.status_code}): {json.dumps(redact(payload), ensure_ascii=False)[:3000]}")
+        fail(f"Hyper3D 生成失败（{response.status_code}）：{json.dumps(redact(payload), ensure_ascii=False)[:3000]}")
     return payload
 
 
@@ -301,7 +301,7 @@ def copy_to_project(model: Path, project_dir: Path, asset_name: str, force: bool
     public_dir.mkdir(parents=True, exist_ok=True)
     target = public_dir / f"{asset_name}.glb"
     if target.exists() and not force:
-        fail(f"Project asset already exists: {target}. Use --force to replace it.")
+        fail(f"项目模型已存在：{target}。如需替换，请使用 --force。")
     shutil.copy2(model, target)
     return target
 
@@ -309,23 +309,23 @@ def copy_to_project(model: Path, project_dir: Path, asset_name: str, force: bool
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--image-path", help="Local reference image path, including an image generated by the companion script")
-    source.add_argument("--image-url", help="Reference image URL")
-    parser.add_argument("--prompt", required=True, help="Prompt sent to Hyper3D for 3D reconstruction")
-    parser.add_argument("--out-dir", default="./artifacts/hyper3d", help="Artifact output directory")
-    parser.add_argument("--project-dir", help="Frontend project directory receiving the final GLB")
-    parser.add_argument("--asset-name", default="generated-model", help="Filename used in the frontend public directory")
-    parser.add_argument("--force", action="store_true", help="Allow replacing an existing frontend asset")
+    source.add_argument("--image-path", help="本地参考图片路径，也可以是配套脚本生成的图片")
+    source.add_argument("--image-url", help="参考图片 URL")
+    parser.add_argument("--prompt", required=True, help="发送给 Hyper3D 的 3D 重建提示词")
+    parser.add_argument("--out-dir", default="./artifacts/hyper3d", help="模型输出目录")
+    parser.add_argument("--project-dir", help="接收最终 GLB 的前端项目目录")
+    parser.add_argument("--asset-name", default="generated-model", help="前端 public 目录中的模型文件名")
+    parser.add_argument("--force", action="store_true", help="允许替换已有前端模型")
     parser.add_argument("--hyper3d-api-base-url", default=os.getenv("HYPER3D_API_BASE_URL", "https://api.hyper3d.ai/api/v2"))
     parser.add_argument("--tier", default="Gen-2.5-Medium", choices=("Gen-2.5-Medium", "Gen-2.5-Extreme-Low"))
     parser.add_argument("--mesh-mode", default="Quad", choices=("Raw", "Quad"))
-    parser.add_argument("--quality", type=int, default=100000, help="Rodin polygon target; must be valid for the selected mesh mode")
+    parser.add_argument("--quality", type=int, default=100000, help="Rodin 面数目标，必须符合所选网格模式")
     parser.add_argument("--geometry-format", default="glb", choices=("glb", "usdz", "fbx", "obj", "stl"))
-    parser.add_argument("--material", choices=("PBR", "Shaded"), help="Optional Rodin material mode")
-    parser.add_argument("--poll-timeout", type=int, default=1800, help="Maximum seconds to wait for each task")
-    parser.add_argument("--bang", action="store_true", help="Run Hyper3D BANG after the base model completes")
-    parser.add_argument("--bang-instruction", help="Semantic part split instruction")
-    parser.add_argument("--bang-strength", type=int, default=5, help="BANG split strength")
+    parser.add_argument("--material", choices=("PBR", "Shaded"), help="可选的 Rodin 材质模式")
+    parser.add_argument("--poll-timeout", type=int, default=1800, help="每个任务的最大等待秒数")
+    parser.add_argument("--bang", action="store_true", help="基础模型完成后运行 Hyper3D BANG 拆解")
+    parser.add_argument("--bang-instruction", help="语义化部件拆解指令")
+    parser.add_argument("--bang-strength", type=int, default=5, help="BANG 拆解强度")
     return parser
 
 
@@ -335,7 +335,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     api_key = os.getenv("HYPER3D_API_KEY")
     if not api_key:
-        fail("HYPER3D_API_KEY is required")
+        fail("需要设置 HYPER3D_API_KEY")
 
     if args.image_path:
         reference = copy_local_image(args.image_path, out_dir)
@@ -353,7 +353,7 @@ def main() -> int:
     write_json(out_dir / "rodin-status.json", redact(base_status))
     base_model, _ = download_result(session, base_url, base_task_id, out_dir, "model")
     if base_model is None:
-        fail("Rodin completed but no downloadable model URL was found; inspect model.json and rodin-status.json")
+        fail("Rodin 已完成，但没有找到可下载的模型 URL；请检查 model.json 和 rodin-status.json")
 
     final_model = base_model
     exploded_model: Path | None = None
@@ -367,7 +367,7 @@ def main() -> int:
         write_json(out_dir / "bang-status.json", redact(bang_status))
         exploded_model, _ = download_result(session, base_url, bang_task_id, out_dir, "model-exploded")
         if exploded_model is None:
-            fail("BANG completed but no downloadable model URL was found; inspect model-exploded.json")
+            fail("BANG 已完成，但没有找到可下载的模型 URL；请检查 model-exploded.json")
         final_model = exploded_model
 
     project_model: Path | None = None

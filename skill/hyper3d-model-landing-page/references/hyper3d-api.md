@@ -1,34 +1,34 @@
-# Hyper3D Rodin API Notes
+# Hyper3D Rodin API 说明
 
-The script targets Hyper3D's v2 Rodin HTTP API. Keep the endpoint configurable with `HYPER3D_API_BASE_URL`; the default is `https://api.hyper3d.ai/api/v2`.
+脚本使用 Hyper3D v2 Rodin HTTP API。接口地址通过 `HYPER3D_API_BASE_URL` 配置，默认值为 `https://api.hyper3d.ai/api/v2`。
 
-## Base generation
+## 基础生成
 
-`POST /rodin` uses multipart form data:
+`POST /rodin` 使用 multipart 表单：
 
-- `images`: one or more reference images
-- `images_assets`: optional image metadata JSON
-- `tier`: `Gen-2.5-Medium` or `Gen-2.5-Extreme-Low`
-- `mesh_mode`: `Raw` or `Quad`
-- `quality_override`: a mode-valid polygon target
-- `geometry_file_format`: `glb`, `usdz`, `fbx`, `obj`, or `stl`
-- `material`: `PBR` or `Shaded` when supported by the account
+- `images`：一个或多个参考图片
+- `images_assets`：可选的图片元数据 JSON
+- `tier`：`Gen-2.5-Medium` 或 `Gen-2.5-Extreme-Low`
+- `mesh_mode`：`Raw` 或 `Quad`
+- `quality_override`：符合所选网格模式的面数目标
+- `geometry_file_format`：`glb`、`usdz`、`fbx`、`obj` 或 `stl`
+- `material`：在账号支持时使用 `PBR` 或 `Shaded`
 
-The response contains task identifiers, commonly `uuid` and `jobs`. Preserve the complete redacted response because response fields can evolve.
+响应通常包含任务标识，例如 `uuid` 和 `jobs`。应保存完整的脱敏响应，因为接口字段可能发生变化。
 
-## Status and download
+## 状态与下载
 
-Poll `POST /status` with `subscription_key`. When all jobs are terminal, call `POST /download` with the task UUID and inspect the response for model URLs. The script downloads a returned GLB URL when it can identify one and always saves the raw response.
+使用 `subscription_key` 调用 `POST /status` 轮询任务。所有任务完成后，使用任务 UUID 调用 `POST /download`，并从响应中识别模型 URL。脚本会在识别到 GLB 时下载文件，同时保存原始响应。
 
-## BANG split
+## BANG 拆解
 
-`POST /bang` accepts the completed task UUID as `asset_id`, plus optional split guidance, strength, resolution, and output format. Poll the returned jobs in the same way as the base task and download the completed model response.
+`POST /bang` 使用已完成任务的 UUID 作为 `asset_id`，并接受可选的拆解指令、强度、分辨率和输出格式。用相同方式轮询任务并下载结果。
 
-## Safety
+## 安全要求
 
-- Keep `HYPER3D_API_KEY` and any subscription key in environment variables.
-- Never put API keys in a frontend bundle, URL query string, or checked-in JSON.
-- Do not retry a timed-out paid request blindly; first inspect the task status.
-- If the API response shape changes, preserve the raw response and fail clearly rather than guessing a download URL.
+- 将 `HYPER3D_API_KEY` 放在环境变量中。
+- 不要把 API 密钥写入前端、URL 查询参数或提交到代码仓库。
+- 付费任务超时后先查询状态，不要直接重复提交。
+- 如果响应结构发生变化，保存原始响应并明确报错，不要猜测下载地址。
 
-Reference: [Hyper3D Rodin API Quick Start](https://docs.hyper3d.ai/en/get-started/quick-start)
+参考：[Hyper3D Rodin API Quick Start](https://docs.hyper3d.ai/en/get-started/quick-start)
