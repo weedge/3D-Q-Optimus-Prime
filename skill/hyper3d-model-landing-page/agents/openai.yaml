@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hyper3D 展示页生成"
+  short_description: "从图片生成3D模型并制作交互式落地页"
+  default_prompt: "使用本地图片、图片 URL 或 OpenAI 生图，通过 Hyper3D 生成 3D 文件，并制作可运行的交互式展示页。"

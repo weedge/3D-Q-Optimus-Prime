@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Generate a reference image with the OpenAI Images API."""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import os
+from pathlib import Path
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--prompt", required=True, help="Prompt for the reference image")
+    parser.add_argument("--output", default="./artifacts/reference.png", help="Output image path")
+    parser.add_argument("--model", default="gpt-image-2", help="OpenAI Images API model")
+    parser.add_argument("--size", default="1024x1024", help="Image size, for example 1024x1024")
+    parser.add_argument("--quality", default="high", choices=("low", "medium", "high"), help="Image quality")
+    return parser
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise SystemExit("OPENAI_API_KEY is required")
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise SystemExit("Missing dependency: openai. Run python3 -m pip install -r scripts/requirements.txt") from exc
+
+    output = Path(args.output).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    response = OpenAI().images.generate(
+        model=args.model,
+        prompt=args.prompt,
+        size=args.size,
+        quality=args.quality,
+    )
+    encoded = getattr(response.data[0], "b64_json", None)
+    if not encoded:
+        raise SystemExit("OpenAI image response did not contain b64_json")
+    output.write_bytes(base64.b64decode(encoded))
+    print(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
